@@ -3,7 +3,9 @@ import path from "path";
 import chalk from "chalk";
 import ora from "ora";
 
-import { scanForImages, scanForUsages, generateReport } from "../core";
+import { scanForImages } from "../core/findImages.js";
+import { scanForUsages } from "../core/findUsages.js";
+import { generateReport } from "../core/report.js";
 import {
   defaultAssetExts,
   imageExts,
