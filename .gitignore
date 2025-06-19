@@ -7,3 +7,4 @@ assetdrain-report.*
 .idea/
 .vscode/
 .nyc_output/
+*.tgz
