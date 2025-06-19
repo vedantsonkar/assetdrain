@@ -1,4 +1,4 @@
-# 🧹 assetdrain
+# 🧹 assetdrain ![npm](https://img.shields.io/npm/v/assetdrain) > ![downloads](https://img.shields.io/npm/dm/assetdrain) > ![license](https://img.shields.io/npm/l/assetdrain)
 
 > Find and remove unused images, icons, and media files from your codebase — with a sleek, interactive CLI. Feels like Vite. Cleans like a Roomba.
 
