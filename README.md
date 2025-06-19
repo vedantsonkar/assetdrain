@@ -34,7 +34,7 @@ npm install -g assetdrain
 or use directly:
 
 ```bash
-npx assetdrain
+npx assetdrain [asset-folder]
 ```
 
 ---
@@ -51,7 +51,7 @@ Example:
 npx assetdrain public
 ```
 
-This will scan all supported asset files in `public/`, match against code in your entire repo, and show unused ones.
+This will scan all supported asset files in `./public/`, match against code in your entire repo, and show unused ones.
 
 ---
 

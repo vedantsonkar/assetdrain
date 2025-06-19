@@ -53,7 +53,9 @@ async function main() {
   const assetSpinner = ora("🔍 Scanning for asset files...").start();
   let allAssets: string[] = [];
   try {
-    allAssets = await scanForImages(assetScanDir, assetExts);
+    allAssets = await scanForImages(assetScanDir, assetExts, [
+      "**/node_modules/**",
+    ]);
     assetSpinner.succeed(`📦 Found ${allAssets.length} asset files.`);
   } catch (err) {
     assetSpinner.fail("❌ Failed to scan asset files.");
