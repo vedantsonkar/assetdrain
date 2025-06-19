@@ -27,8 +27,8 @@ import {
   askIfShouldDelete,
 } from "./prompts.js";
 
-const pkgResult = readPackageUpSync({ cwd: import.meta.url });
-const version = pkgResult?.packageJson.version || "unknown";
+const result = readPackageUpSync({ cwd: process.cwd() });
+const version = result?.packageJson?.version ?? "unknown";
 
 if (process.argv.includes("--version") || process.argv.includes("-v")) {
   console.log(`🧹 assetdrain v${version}`);
