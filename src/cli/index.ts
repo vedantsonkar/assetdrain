@@ -25,18 +25,11 @@ import {
   askIfShouldDelete,
 } from "./prompts.js";
 
+const version = "1.0.10";
 const args = process.argv.slice(2);
 
 // Version flags
 if (args.includes("--version") || args.includes("-v")) {
-  let version = "unknown";
-  try {
-    const pkgPath = path.resolve(__dirname, "../..", "package.json");
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-    version = pkg.version;
-  } catch {
-    /* ignore */
-  }
   console.log(`🧹 assetdrain v${version}`);
   process.exit(0);
 }
