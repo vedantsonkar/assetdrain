@@ -5,7 +5,6 @@ import fs from "fs";
 // Third-party
 import chalk from "chalk";
 import ora from "ora";
-import { readPackageUpSync } from "read-pkg-up";
 
 // Local modules
 import { scanForImages } from "../core/findImages.js";
