@@ -26,25 +26,23 @@ import {
 } from "./prompts.js";
 
 const version = "1.0.10";
-const args = process.argv.slice(2);
 
-// Version flags
-if (args.includes("--version") || args.includes("-v")) {
+if (process.argv.includes("--version") || process.argv.includes("-v")) {
   console.log(`🧹 assetdrain v${version}`);
   process.exit(0);
 }
 
-// Help flag
-if (args.includes("--help") || args.includes("-h")) {
+if (process.argv.includes("--help")) {
   console.log(`
-Usage: assetdrain [asset-directory]
+Usage: assetdrain [asset-folder]
 
 Options:
   --version, -v   Show version
-  --help, -h      Show help
+  --help          Show help
 `);
   process.exit(0);
 }
+
 async function main() {
   console.log(chalk.cyanBright.bold("\n🧹 Welcome to assetdrain!\n"));
 
