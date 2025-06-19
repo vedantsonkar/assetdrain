@@ -1,8 +1,12 @@
-#!/usr/bin/env node
+// Built-ins
 import path from "path";
+import { createRequire } from "module";
+
+// Third-party
 import chalk from "chalk";
 import ora from "ora";
 
+// Local modules
 import { scanForImages } from "../core/findImages.js";
 import { scanForUsages } from "../core/findUsages.js";
 import { generateReport } from "../core/report.js";
@@ -20,6 +24,25 @@ import {
   askExportFormat,
   askIfShouldDelete,
 } from "./prompts.js";
+
+const require = createRequire(import.meta.url);
+const pkg = require("../../package.json");
+
+if (process.argv.includes("--version") || process.argv.includes("-v")) {
+  console.log(`🧹 assetdrain v${pkg.version}`);
+  process.exit(0);
+}
+
+if (process.argv.includes("--help")) {
+  console.log(`
+Usage: assetdrain [asset-folder]
+
+Options:
+  --version, -v   Show version
+  --help          Show help
+`);
+  process.exit(0);
+}
 
 async function main() {
   console.log(chalk.cyanBright.bold("\n🧹 Welcome to assetdrain!\n"));
