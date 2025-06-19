@@ -1,6 +1,7 @@
 // Built-ins
 import path from "path";
-import { createRequire } from "module";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
 
 // Third-party
 import chalk from "chalk";
@@ -25,8 +26,10 @@ import {
   askIfShouldDelete,
 } from "./prompts.js";
 
-const require = createRequire(import.meta.url);
-const pkg = require("../../package.json");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(
+  readFileSync(path.join(__dirname, "../../package.json"), "utf8")
+);
 
 if (process.argv.includes("--version") || process.argv.includes("-v")) {
   console.log(`🧹 assetdrain v${pkg.version}`);

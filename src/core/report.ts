@@ -25,7 +25,9 @@ export async function generateReport(
 
   console.log("\n" + chalk.yellow("Unused Assets:"));
   unusedAssets.forEach((img) => {
-    console.log(chalk.gray("- ") + path.relative(process.cwd(), img));
+    console.log(
+      chalk.gray("• ") + chalk.italic(`[${path.relative(process.cwd(), img)}]`)
+    );
   });
 
   if (options.mode === "dry") {
