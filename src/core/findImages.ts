@@ -1,5 +1,5 @@
 import fg from "fast-glob";
-import { getExtensionsPattern } from "./fileTypes";
+import { getExtensionsPattern } from "./fileTypes.js";
 
 export async function scanForImages(
   baseDir: string,

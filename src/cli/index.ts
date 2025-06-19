@@ -12,15 +12,14 @@ import {
   videoExts,
   gifExts,
   defaultCodeExts,
-} from "../core/fileTypes";
+} from "../core/fileTypes.js";
 import {
   askAssetTypes,
   askCodeFileTypes,
   askAction,
   askExportFormat,
   askIfShouldDelete,
-} from "./prompts";
-import prompts from "prompts";
+} from "./prompts.js";
 
 async function main() {
   console.log(chalk.cyanBright.bold("\n🧹 Welcome to assetdrain!\n"));
