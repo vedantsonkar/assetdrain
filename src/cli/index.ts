@@ -1,7 +1,6 @@
 // Built-ins
 import path from "path";
-import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
+import fs from "fs";
 
 // Third-party
 import chalk from "chalk";
@@ -27,25 +26,33 @@ import {
   askIfShouldDelete,
 } from "./prompts.js";
 
-const result = readPackageUpSync({ cwd: process.cwd() });
-const version = result?.packageJson?.version ?? "unknown";
+const args = process.argv.slice(2);
 
-if (process.argv.includes("--version") || process.argv.includes("-v")) {
+// Version flags
+if (args.includes("--version") || args.includes("-v")) {
+  let version = "unknown";
+  try {
+    const pkgPath = path.resolve(__dirname, "../..", "package.json");
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    version = pkg.version;
+  } catch {
+    /* ignore */
+  }
   console.log(`🧹 assetdrain v${version}`);
   process.exit(0);
 }
 
-if (process.argv.includes("--help")) {
+// Help flag
+if (args.includes("--help") || args.includes("-h")) {
   console.log(`
-Usage: assetdrain [asset-folder]
+Usage: assetdrain [asset-directory]
 
 Options:
   --version, -v   Show version
-  --help          Show help
+  --help, -h      Show help
 `);
   process.exit(0);
 }
-
 async function main() {
   console.log(chalk.cyanBright.bold("\n🧹 Welcome to assetdrain!\n"));
 
