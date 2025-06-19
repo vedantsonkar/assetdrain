@@ -1,6 +1,5 @@
 // Built-ins
 import path from "path";
-import fs from "fs";
 
 // Third-party
 import chalk from "chalk";
@@ -25,7 +24,7 @@ import {
   askIfShouldDelete,
 } from "./prompts.js";
 
-const version = "1.0.12";
+const version = "1.0.13";
 
 if (process.argv.includes("--version") || process.argv.includes("-v")) {
   console.log(`🧹 assetdrain v${version}`);
