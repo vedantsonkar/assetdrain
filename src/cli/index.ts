@@ -24,23 +24,23 @@ import {
   askIfShouldDelete,
 } from "./prompts.js";
 
-const version = "1.0.13";
+// const version = "1.0.13";
 
-if (process.argv.includes("--version") || process.argv.includes("-v")) {
-  console.log(`🧹 assetdrain v${version}`);
-  process.exit(0);
-}
+// if (process.argv.includes("--version") || process.argv.includes("-v")) {
+//   console.log(`🧹 assetdrain v${version}`);
+//   process.exit(0);
+// }
 
-if (process.argv.includes("--help")) {
-  console.log(`
-Usage: assetdrain [asset-folder]
+// if (process.argv.includes("--help")) {
+//   console.log(`
+// Usage: assetdrain [asset-folder]
 
-Options:
-  --version, -v   Show version
-  --help          Show help
-`);
-  process.exit(0);
-}
+// Options:
+//   --version, -v   Show version
+//   --help          Show help
+// `);
+//   process.exit(0);
+// }
 
 async function main() {
   console.log(chalk.cyanBright.bold("\n🧹 Welcome to assetdrain!\n"));
