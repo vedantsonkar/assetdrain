@@ -26,12 +26,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/vedant-sonkar/assetdrain.git"
+    "url": "https://github.com/vedantsonkar/assetdrain.git"
   },
   "bugs": {
-    "url": "https://github.com/vedant-sonkar/assetdrain/issues"
+    "url": "https://github.com/vedantsonkar/assetdrain/issues"
   },
-  "homepage": "https://github.com/vedant-sonkar/assetdrain#readme",
+  "homepage": "https://github.com/vedantsonkar/assetdrain#readme",
   "dependencies": {
     "chalk": "^5.4.1",
     "commander": "^14.0.0",
