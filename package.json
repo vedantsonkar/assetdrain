@@ -1,0 +1,54 @@
+{
+  "name": "assetdrain",
+  "version": "1.0.0",
+  "description": "🧹 A blazing-fast CLI to detect and clean unused assets from your codebase with interactive UX.",
+  "type": "module",
+  "bin": {
+    "assetdrain": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/cli/index.ts",
+    "build": "tsc",
+    "start": "node dist/cli/index.js",
+    "test": "tsx src/cli/index.ts"
+  },
+  "keywords": [
+    "cli",
+    "interactive",
+    "unused assets",
+    "asset cleaner",
+    "static analysis",
+    "image cleanup",
+    "typescript",
+    "open source"
+  ],
+  "author": "Vedant Sonkar <vedantsonkar0810@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vedant-sonkar/assetdrain.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vedant-sonkar/assetdrain/issues"
+  },
+  "homepage": "https://github.com/vedant-sonkar/assetdrain#readme",
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^14.0.0",
+    "fast-glob": "^3.3.3",
+    "ora": "^8.2.0",
+    "p-limit": "^6.2.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.3",
+    "@types/prompts": "^2.4.9",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
+}

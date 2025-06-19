@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.log
+.env
+assetdrain-report.*
+.DS_Store
+.idea/
+.vscode/
+.nyc_output/
