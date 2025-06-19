@@ -1,3 +1,27 @@
+#!/usr/bin/env node
+
+// Use built-in `createRequire` for safely loading package.json
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pkg = require("../../package.json");
+
+// Handle CLI flags before anything else
+if (process.argv.includes("--version") || process.argv.includes("-v")) {
+  console.log(`🧹 assetdrain v${pkg.version}`);
+  process.exit(0);
+}
+
+if (process.argv.includes("--help")) {
+  console.log(`
+Usage: npx assetdrain [asset-folder]
+
+Options:
+  --version, -v   Show version
+  --help          Show help
+`);
+  process.exit(0);
+}
+
 // Built-ins
 import path from "path";
 
@@ -23,24 +47,6 @@ import {
   askExportFormat,
   askIfShouldDelete,
 } from "./prompts.js";
-
-// const version = "1.0.13";
-
-// if (process.argv.includes("--version") || process.argv.includes("-v")) {
-//   console.log(`🧹 assetdrain v${version}`);
-//   process.exit(0);
-// }
-
-// if (process.argv.includes("--help")) {
-//   console.log(`
-// Usage: assetdrain [asset-folder]
-
-// Options:
-//   --version, -v   Show version
-//   --help          Show help
-// `);
-//   process.exit(0);
-// }
 
 async function main() {
   console.log(chalk.cyanBright.bold("\n🧹 Welcome to assetdrain!\n"));
