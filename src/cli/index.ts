@@ -25,7 +25,7 @@ import {
   askIfShouldDelete,
 } from "./prompts.js";
 
-const version = "1.0.10";
+const version = "1.0.12";
 
 if (process.argv.includes("--version") || process.argv.includes("-v")) {
   console.log(`🧹 assetdrain v${version}`);
