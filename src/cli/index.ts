@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 // Third-party
 import chalk from "chalk";
 import ora from "ora";
+import { readPackageUpSync } from "read-pkg-up";
 
 // Local modules
 import { scanForImages } from "../core/findImages.js";
@@ -26,13 +27,11 @@ import {
   askIfShouldDelete,
 } from "./prompts.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const pkg = JSON.parse(
-  readFileSync(path.join(__dirname, "../../package.json"), "utf8")
-);
+const pkgResult = readPackageUpSync({ cwd: import.meta.url });
+const version = pkgResult?.packageJson.version || "unknown";
 
 if (process.argv.includes("--version") || process.argv.includes("-v")) {
-  console.log(`🧹 assetdrain v${pkg.version}`);
+  console.log(`🧹 assetdrain v${version}`);
   process.exit(0);
 }
 
