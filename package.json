@@ -54,18 +54,18 @@
   },
   "homepage": "https://github.com/vedantsonkar/assetdrain#readme",
   "dependencies": {
-    "chalk": "^5.4.1",
-    "commander": "^14.0.0",
+    "chalk": "^6.0.0",
+    "commander": "^15.0.0",
     "fast-glob": "^3.3.3",
-    "ora": "^8.2.0",
-    "p-limit": "^6.2.0",
+    "ora": "^9.4.1",
+    "p-limit": "^7.3.2",
     "prompts": "^2.4.2"
   },
   "devDependencies": {
-    "@types/node": "^24.0.3",
+    "@types/node": "^24.13.3",
     "@types/prompts": "^2.4.9",
-    "tsx": "^4.20.3",
-    "typescript": "^5.8.3",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
     "vitest": "^5.0.0"
   },
   "files": [
