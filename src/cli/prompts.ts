@@ -1,6 +1,7 @@
 import prompts from "prompts";
 import type { PromptObject } from "prompts";
 import chalk from "chalk";
+import { normalizeExtList } from "../core/fileTypes.js";
 
 const prompt = <T extends string = string>(config: PromptObject<T>) =>
   prompts<T>(config, {
@@ -23,6 +24,7 @@ export async function askAssetTypes() {
       { title: "Images", value: "images" },
       { title: "Videos", value: "videos" },
       { title: "GIFs", value: "gifs" },
+      { title: "Audio", value: "audio" },
       { title: "Custom (enter extensions)", value: "custom" },
     ],
     initial: 0,
@@ -32,9 +34,9 @@ export async function askAssetTypes() {
     const { customAssets } = await prompt({
       type: "text",
       name: "customAssets",
-      message: "Enter asset extensions (comma-separated, no spaces):",
+      message: "Enter asset extensions (comma-separated):",
     });
-    return customAssets.split(",").map((e: string) => e.trim().toLowerCase());
+    return normalizeExtList(customAssets);
   }
 
   return assetChoice;
@@ -47,7 +49,9 @@ export async function askCodeFileTypes() {
     message: "Choose code file types to scan",
     choices: [
       {
-        title: chalk.greenBright("Default (js,ts,jsx,tsx,vue,html)"),
+        title: chalk.greenBright(
+          "Default (js,ts,jsx,tsx,vue,html,css,scss,less,svelte,astro,mdx,md,json)"
+        ),
         value: "default",
       },
       { title: "Custom (enter extensions)", value: "custom" },
@@ -59,9 +63,9 @@ export async function askCodeFileTypes() {
     const { customCodeExts } = await prompt({
       type: "text",
       name: "customCodeExts",
-      message: "Enter code file extensions (comma-separated, no spaces):",
+      message: "Enter code file extensions (comma-separated):",
     });
-    return customCodeExts.split(",").map((e: string) => e.trim().toLowerCase());
+    return normalizeExtList(customCodeExts);
   }
 
   return codeExtChoice;
@@ -83,7 +87,7 @@ export async function askAction(): Promise<"review" | "dry" | "delete"> {
       },
       {
         title: chalk.redBright(
-          "Scan and Delete Automatically (At your own risk)"
+          "Scan and Delete Automatically (moved to .assetdrain-trash/)"
         ),
         value: "delete",
       },

@@ -1,44 +1,33 @@
 #!/usr/bin/env node
 
-// Use built-in `createRequire` for safely loading package.json
 import { createRequire } from "module";
+import fs from "fs/promises";
+import path from "path";
+import chalk from "chalk";
+import ora from "ora";
+import { Command } from "commander";
+
 const require = createRequire(import.meta.url);
 const pkg = require("../../package.json");
 
-// Handle CLI flags before anything else
-if (process.argv.includes("--version") || process.argv.includes("-v")) {
-  console.log(`🧹 assetdrain v${pkg.version}`);
-  process.exit(0);
-}
-
-if (process.argv.includes("--help")) {
-  console.log(`
-Usage: npx assetdrain [asset-folder]
-
-Options:
-  --version, -v   Show version
-  --help          Show help
-`);
-  process.exit(0);
-}
-
-// Built-ins
-import path from "path";
-
-// Third-party
-import chalk from "chalk";
-import ora from "ora";
-
 // Local modules
-import { scanForImages } from "../core/findImages.js";
+import { scanForAssets } from "../core/findAssets.js";
 import { scanForUsages } from "../core/findUsages.js";
-import { generateReport } from "../core/report.js";
+import { deleteAssets, type DeleteResult } from "../core/delete.js";
+import {
+  buildReport,
+  printReport,
+  exportReport,
+} from "../core/report.js";
+import { detectFramework, splitFrameworkConventions } from "../core/framework.js";
 import {
   defaultAssetExts,
   imageExts,
   videoExts,
   gifExts,
+  audioExts,
   defaultCodeExts,
+  normalizeExtList,
 } from "../core/fileTypes.js";
 import {
   askAssetTypes,
@@ -48,134 +37,316 @@ import {
   askIfShouldDelete,
 } from "./prompts.js";
 
+type Mode = "review" | "dry" | "delete";
+
+interface CliOptions {
+  types?: string;
+  code?: string;
+  mode?: string;
+  delete?: boolean;
+  hardDelete?: boolean;
+  export?: string;
+  yes?: boolean;
+  json?: boolean;
+  failOnUnused?: boolean;
+}
+
+const program = new Command();
+
+program
+  .name("assetdrain")
+  .description("🧹 Find and remove unused assets from your codebase")
+  .version(pkg.version, "-v, --version", "Show version number")
+  .helpOption("-h, --help", "Show help")
+  .arguments("[folder]")
+  .option("-t, --types <extensions>", "Asset extensions to scan, comma-separated")
+  .option(
+    "-c, --code <extensions>",
+    "Code extensions to search for references, comma-separated"
+  )
+  .option("-m, --mode <mode>", "Action: review | scan | delete")
+  .option("-d, --delete", "Delete unused assets (same as --mode delete)")
+  .option(
+    "--hard-delete",
+    "Permanently delete files instead of moving them to .assetdrain-trash/"
+  )
+  .option("-e, --export <format>", "Export the report: csv | json")
+  .option("-y, --yes", "Skip confirmation prompts (for CI)")
+  .option("--json", "Print a machine-readable JSON summary to stdout")
+  .option("--fail-on-unused", "Exit with code 1 when unused assets are found")
+  .parse(process.argv);
+
+const opts = program.opts<CliOptions>();
+
+function fail(message: string): never {
+  console.error(chalk.red(`\n✖ ${message}`));
+  console.error(
+    chalk.gray("   Run `assetdrain --help` to see all options.\n")
+  );
+  process.exit(1);
+}
+
+/** Prompts interactively, or fails with guidance when stdin isn't a TTY. */
+async function resolveChoice<T>(
+  what: string,
+  provided: T | undefined,
+  ask: () => Promise<T>
+): Promise<T> {
+  if (provided !== undefined) return provided;
+  if (interactive) return ask();
+  fail(
+    `${what} must be provided via flags when running non-interactively (e.g. in CI).`
+  );
+}
+
+const interactive = Boolean(process.stdin.isTTY) && !opts.json;
+
 async function main() {
-  console.log(chalk.cyanBright.bold("\n🧹 Welcome to assetdrain!\n"));
+  if (!opts.json) {
+    console.log(chalk.cyanBright.bold("\n🧹 Welcome to assetdrain!\n"));
+  }
 
-  // Ask for asset types
-  const assetChoice = await askAssetTypes();
+  // ---- Resolve configuration (flags win, prompts fill the gaps) ----
 
-  let assetExts: string[] = [];
+  const assetExts = await (async () => {
+    if (opts.types) {
+      const exts = normalizeExtList(opts.types);
+      if (exts.length === 0) fail("No valid asset extensions in --types.");
+      return exts;
+    }
+    const choice = await resolveChoice("Asset types", undefined, askAssetTypes);
+    if (choice === "default") return defaultAssetExts;
+    if (choice === "images") return imageExts;
+    if (choice === "videos") return videoExts;
+    if (choice === "gifs") return gifExts;
+    if (choice === "audio") return audioExts;
+    return choice; // already-normalized custom list
+  })();
 
-  if (assetChoice === "default") assetExts = defaultAssetExts;
-  else if (assetChoice === "images") assetExts = imageExts;
-  else if (assetChoice === "videos") assetExts = videoExts;
-  else if (assetChoice === "gifs") assetExts = gifExts;
-  else if (Array.isArray(assetChoice)) assetExts = assetChoice;
+  const codeExts = await (async () => {
+    if (opts.code) {
+      const exts = normalizeExtList(opts.code);
+      if (exts.length === 0) fail("No valid code extensions in --code.");
+      return exts;
+    }
+    const choice = await resolveChoice(
+      "Code file types",
+      undefined,
+      askCodeFileTypes
+    );
+    return choice === "default" ? defaultCodeExts : choice;
+  })();
 
-  // Ask for code file types
-  const codeChoice = await askCodeFileTypes();
-  const codeExts = codeChoice === "default" ? defaultCodeExts : codeChoice;
+  const mode = await (async (): Promise<Mode> => {
+    const flagMode = opts.delete ? "delete" : opts.mode?.toLowerCase();
+    if (flagMode !== undefined) {
+      if (flagMode !== "review" && flagMode !== "scan" && flagMode !== "delete") {
+        fail(`Invalid --mode "${flagMode}". Use review, scan, or delete.`);
+      }
+      if (flagMode === "review" && !interactive) {
+        fail(
+          '--mode review needs an interactive terminal. Use --mode scan or --mode delete in CI.'
+        );
+      }
+      return flagMode === "scan" ? "dry" : flagMode;
+    }
+    const asked = await resolveChoice("Mode", undefined, askAction);
+    return asked;
+  })();
 
-  // Ask what action to perform
-  const action = await askAction();
+  const exportFormat = await (async (): Promise<"csv" | "json" | undefined> => {
+    if (opts.export) {
+      const format = opts.export.toLowerCase();
+      if (format !== "csv" && format !== "json") {
+        fail(`Invalid --export "${opts.export}". Use csv or json.`);
+      }
+      return format;
+    }
+    if (!interactive) return undefined;
+    const asked = await askExportFormat();
+    return asked === "no" ? undefined : asked;
+  })();
 
-  // Directories
-  const assetScanDir = path.resolve(process.cwd(), process.argv[2] || ".");
-  const projectRoot = process.cwd(); // code scan will always be done from root
+  // ---- Resolve and validate the folder ----
 
-  console.log(chalk.gray(`\n📁 Scanning assets in: ${assetScanDir}`));
-  console.log(chalk.gray(`🔎 Analyzing code usage in: ${projectRoot}\n`));
+  const folderArg = program.args[0] ?? ".";
+  const assetScanDir = path.resolve(process.cwd(), folderArg);
+  const projectRoot = process.cwd();
 
-  // Spinner: scanning assets
+  try {
+    const stat = await fs.stat(assetScanDir);
+    if (!stat.isDirectory()) fail(`"${folderArg}" is not a directory.`);
+  } catch {
+    fail(`The folder "${folderArg}" does not exist.`);
+  }
+
+  if (!opts.json) {
+    console.log(chalk.gray(`\n📁 Scanning assets in: ${assetScanDir}`));
+    console.log(chalk.gray(`🔎 Analyzing code usage in: ${projectRoot}\n`));
+  }
+
+  // ---- Scan assets ----
+
   const assetSpinner = ora("🔍 Scanning for asset files...").start();
   let allAssets: string[] = [];
   try {
-    allAssets = await scanForImages(assetScanDir, assetExts, [
-      "**/node_modules/**",
-    ]);
+    allAssets = await scanForAssets(assetScanDir, assetExts);
     assetSpinner.succeed(`📦 Found ${allAssets.length} asset files.`);
   } catch (err) {
     assetSpinner.fail("❌ Failed to scan asset files.");
     throw err;
   }
 
-  // Spinner: scanning usages
+  // ---- Analyze usage ----
+
   const usageSpinner = ora("📚 Analyzing code usage...").start();
   let usedAssets: Set<string>;
+  let codeFileCount: number;
   try {
-    usedAssets = await scanForUsages(
-      projectRoot,
-      allAssets,
-      codeExts,
-      20 // concurrency
+    const result = await scanForUsages(projectRoot, allAssets, codeExts);
+    usedAssets = result.usedAssets;
+    codeFileCount = result.codeFiles.length;
+    usageSpinner.succeed(
+      `✅ Usage analysis complete (${codeFileCount} code files).`
     );
-    usageSpinner.succeed("✅ Usage analysis complete.");
   } catch (err) {
     usageSpinner.fail("❌ Failed to analyze usage.");
     throw err;
   }
 
-  // Spinner: generate report (terminal view)
-  const reportSpinner = ora("🧾 Generating report...").start();
-  try {
-    await generateReport(allAssets, usedAssets, {
-      mode: action,
-      export: undefined,
-    });
-    reportSpinner.succeed("📊 Report complete.");
-  } catch (err) {
-    reportSpinner.fail("❌ Failed to generate report.");
-    throw err;
+  // Guard: with no code files scanned, every asset would look unused —
+  // refuse to report or delete anything.
+  if (codeFileCount === 0) {
+    usageSpinner.fail(
+      `❌ No code files matched (${codeExts.join(", ")}). ` +
+        "Refusing to mark assets as unused — check --code."
+    );
+    process.exit(1);
   }
 
-  let deleted = false;
+  // ---- Build report (framework conventions never count as unused) ----
 
-  if (action === "review") {
-    const shouldDelete = await askIfShouldDelete();
-    if (shouldDelete) {
+  const framework = await detectFramework(projectRoot);
+  const { candidates, kept } = splitFrameworkConventions(
+    allAssets,
+    projectRoot,
+    framework
+  );
+
+  const report = await buildReport(candidates, usedAssets, kept);
+
+  // ---- Act on the mode ----
+
+  let deleted: DeleteResult | undefined;
+
+  if (mode === "delete") {
+    if (report.unusedAssets.length === 0) {
+      ora("🧹 Nothing to delete.").info();
+    } else {
+      const strategy = opts.hardDelete ? "hard" : "trash";
+      if (strategy === "hard" && interactive && !opts.yes) {
+        const confirmed = await askIfShouldDelete();
+        if (!confirmed) {
+          ora("Deletion cancelled.").info();
+          process.exit(0);
+        }
+      }
       const deleteSpinner = ora("🧹 Deleting unused assets...").start();
-      try {
-        await generateReport(allAssets, usedAssets, {
-          mode: "delete",
-          export: undefined,
-        });
-        deleteSpinner.succeed("✅ Unused assets deleted.");
-        deleted = true;
-      } catch (err) {
-        deleteSpinner.fail("❌ Failed to delete unused assets.");
-        throw err;
+      deleted = await deleteAssets(
+        report.unusedAssets,
+        projectRoot,
+        strategy
+      );
+      if (deleted.failed.length > 0) {
+        deleteSpinner.warn(
+          `🧹 Deleted ${deleted.deleted.length}, failed ${deleted.failed.length}.`
+        );
+      } else {
+        deleteSpinner.succeed(
+          strategy === "hard"
+            ? "🚨 Unused assets permanently deleted."
+            : `🗑 Unused assets moved to .assetdrain-trash/ (recoverable).`
+        );
       }
     }
-  } else if (action === "delete") {
-    const deleteSpinner = ora(
-      chalk.red("🧹 Deleting unused assets...")
-    ).start();
-    try {
-      await generateReport(allAssets, usedAssets, {
-        mode: "delete",
-        export: undefined,
-      });
-      deleteSpinner.succeed(
-        chalk.redBright("🚨 Unused assets deleted automatically.")
-      );
-      deleted = true;
-    } catch (err) {
-      deleteSpinner.fail("❌ Failed to delete unused assets.");
-      throw err;
+  } else if (mode === "review") {
+    printReport(report);
+    if (report.unusedAssets.length > 0) {
+      const shouldDelete = await askIfShouldDelete();
+      if (shouldDelete) {
+        const strategy = opts.hardDelete ? "hard" : "trash";
+        const deleteSpinner = ora("🧹 Deleting unused assets...").start();
+        deleted = await deleteAssets(
+          report.unusedAssets,
+          projectRoot,
+          strategy
+        );
+        deleted.failed.length > 0
+          ? deleteSpinner.warn(
+              `🧹 Deleted ${deleted.deleted.length}, failed ${deleted.failed.length}.`
+            )
+          : deleteSpinner.succeed("✅ Unused assets deleted.");
+      }
     }
-  } else {
-    deleted = false; // Scan Only
+  } else if (!opts.json) {
+    printReport(report);
+    console.log(chalk.blueBright("\n🧪 Dry run: no files were deleted.\n"));
   }
 
-  const exportFormat = await askExportFormat();
+  // In non-json modes the report was printed above (with deletion details);
+  // in review mode deletion happened after printing, so pass it to the export.
 
-  if (exportFormat !== "no") {
+  // ---- Export ----
+
+  let reportFile: string | undefined;
+  if (exportFormat) {
     const exportSpinner = ora(
       `💾 Saving report as ${exportFormat.toUpperCase()}...`
     ).start();
     try {
-      await generateReport(allAssets, usedAssets, {
-        mode: "dry", // safe for export
-        export: exportFormat,
-        deleted, // ✅ now correct and accurate
-      });
-      exportSpinner.succeed(
-        `✅ Report saved to assetdrain-report.${exportFormat}`
-      );
+      reportFile = await exportReport(report, exportFormat, deleted);
+      exportSpinner.succeed(`✅ Report saved to ${reportFile}`);
     } catch (err) {
       exportSpinner.fail("❌ Failed to save report.");
       throw err;
     }
+  }
+
+  // ---- JSON summary (stdout only; all human output went to stderr) ----
+
+  if (opts.json) {
+    const rel = (file: string) => path.relative(projectRoot, file);
+    console.log(
+      JSON.stringify(
+        {
+          totalAssets: report.totalAssets,
+          usedCount: report.usedCount,
+          unusedCount: report.unusedAssets.length,
+          keptConventionCount: report.keptConventions.length,
+          reclaimableBytes: report.reclaimableBytes,
+          unusedAssets: report.unusedAssets.map(rel),
+          keptConventions: report.keptConventions.map(rel),
+          deletion: deleted
+            ? {
+                strategy: deleted.strategy,
+                trashDir: deleted.trashDir ? rel(deleted.trashDir) : undefined,
+                deleted: deleted.deleted.map((entry) => rel(entry.original)),
+                failed: deleted.failed.map((failure) => ({
+                  file: rel(failure.file),
+                  error: failure.error,
+                })),
+              }
+            : null,
+          reportFile,
+        },
+        null,
+        2
+      )
+    );
+  }
+
+  if (opts.failOnUnused && report.unusedAssets.length > 0) {
+    process.exitCode = 1;
   }
 }
 
