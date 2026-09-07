@@ -1,0 +1,57 @@
+name: Publish Release
+
+on:
+    workflow_run:
+        workflows: ["CI"]
+        types:
+            - completed
+
+permissions:
+    contents: write
+    id-token: write
+
+jobs:
+    publish:
+        if: >
+            github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.head_branch == 'main'
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout tested commit
+              uses: actions/checkout@v6
+              with:
+                  ref: ${{ github.event.workflow_run.head_sha }}
+
+            - name: Use Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: "24"
+                  registry-url: "https://registry.npmjs.org"
+
+            - name: Read release version
+              id: release
+              run: |
+                  VERSION=$(node -p "require('./package.json').version")
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+                  if npm view "assetdrain@$VERSION" version >/dev/null 2>&1; then
+                    echo "published=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "published=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Publish to npm
+              if: steps.release.outputs.published == 'false'
+              run: npm publish
+
+            - name: Create GitHub release
+              if: steps.release.outputs.published == 'false'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  VERSION: ${{ steps.release.outputs.version }}
+              run: |
+                  gh release create "v$VERSION" \
+                    --target "${{ github.event.workflow_run.head_sha }}" \
+                    --generate-notes \
+                    --title "v$VERSION"

@@ -1,137 +1,403 @@
 # 🧹 assetdrain
 
-![npm](https://img.shields.io/npm/v/assetdrain) > ![downloads](https://img.shields.io/npm/dm/assetdrain) > ![license](https://img.shields.io/npm/l/assetdrain)
+[![npm version](https://img.shields.io/npm/v/assetdrain)](https://www.npmjs.com/package/assetdrain)
+[![npm downloads](https://img.shields.io/npm/dm/assetdrain)](https://www.npmjs.com/package/assetdrain)
 [![CI](https://github.com/vedantsonkar/assetdrain/actions/workflows/ci.yml/badge.svg)](https://github.com/vedantsonkar/assetdrain/actions/workflows/ci.yml)
+[![License](https://img.shields.io/npm/l/assetdrain)](./LICENSE)
 
-> Find and remove unused images, icons, and media files from your codebase — with a sleek, interactive CLI. Feels like Vite. Cleans like a Roomba. **Safe by default: deletions go to a restorable trash folder.**
+> Find and safely clean unused images, icons, videos, fonts, and other assets from your codebase — with a fast, interactive CLI.
+
+**Feels like Vite. Cleans like a Roomba. 🧹**
+
+Safe by default: deleted assets are moved to a restorable trash directory instead of being permanently removed.
 
 ---
 
-## 🚀 What is this?
+## 🚀 What is assetdrain?
 
-A fast CLI tool that scans your repo for assets (like `.svg`, `.png`, `.mp4`, etc.), checks where they're actually used in code, and tells you what you can delete — or moves them to a recoverable trash folder for you 🫡.
+`assetdrain` is a CLI that scans your project for assets such as `.svg`, `.png`, `.jpg`, `.webp`, `.mp4`, and more, then checks whether they're actually referenced anywhere in your source code.
+
+You can:
+
+- inspect unused assets interactively
+- scan without modifying anything
+- automatically clean unused files
+- export results to JSON or CSV
+- use it as a CI gate
+- permanently delete assets when you explicitly opt in
 
 ---
 
 ## 🎯 Features
 
-- ✅ Scans for unused images, gifs, videos, audio, or any custom extensions
-- 🎯 Works with **any file structure** (Next.js app router, traditional `src/`, etc.)
-- 🛡 **Safe by default** — deleted files are moved to `.assetdrain-trash/<timestamp>/` with a manifest you can restore from
-- 🧠 Understands real-world references: `https://` CDN URLs, `./` and `../` relative imports, `@/` and `~/` root aliases, and CSS `url(...)`
-- 🏗 Framework-aware — Next.js convention files (`app/icon.png`, `opengraph-image.jpg`, `favicon.ico`, …) are never flagged
-- 🚫 Ignores `node_modules`, build output (`.next`, `dist`, `out`, …) and its own trash folder
-- ✨ Interactive prompts, or fully scriptable flags for CI with `--json` output
-- 📦 Export to **CSV/JSON**, with reclaimable disk-space estimates
+- ✅ Detect unused images, GIFs, videos, audio, fonts, or custom extensions
+- 🎯 Works with virtually **any project structure**
+- 🛡 **Trash-first deletion** with built-in recovery metadata
+- 🧠 Understands real-world references:
+  - relative imports such as `./` and `../`
+  - root aliases such as `@/` and `~/`
+  - CSS `url(...)`
+  - external/CDN URLs
+- 🏗 Framework-aware protection for Next.js convention files such as:
+  - `app/icon.png`
+  - `favicon.ico`
+  - `opengraph-image.jpg`
+- 🚫 Automatically ignores:
+  - `node_modules`
+  - `.next`
+  - `dist`
+  - `out`
+  - build output
+  - `.assetdrain-trash`
+- ✨ Interactive CLI for local development
+- 🤖 Fully scriptable CLI for CI/CD
+- 📊 Machine-readable `--json` output
+- 📦 CSV and JSON report exports
+- 💾 Reports estimated reclaimable disk space
+- 🚨 Optional `--fail-on-unused` CI gate
+- 🔥 Explicit `--hard-delete` mode when permanent deletion is actually wanted
 
 ---
 
-## 🛠️ Installation
+## 🛠 Installation
+
+### Run directly
+
+The easiest way to use assetdrain:
+
+```bash
+npx assetdrain@latest
+```
+
+Or scan a specific asset directory:
+
+```bash
+npx assetdrain@latest public
+```
+
+### Install globally
 
 ```bash
 npm install -g assetdrain
 ```
 
-or use directly:
+Then:
 
 ```bash
-npx assetdrain [asset-folder]
+assetdrain public
 ```
 
 ---
 
 ## 🧪 Usage
 
-```bash
-# Interactive — walk through prompts
-npx assetdrain public
+### Interactive
 
-# Non-interactive (CI / scripts) — everything via flags
-npx assetdrain public --types png,svg,webp --mode scan --json
+```bash
+npx assetdrain public
 ```
 
-### CLI options
+assetdrain will walk you through the scan configuration and ask what you want to do with detected unused assets.
 
-| Flag | Description |
-|---|---|
-| `[folder]` | Asset folder to scan (default: `.`) |
-| `-t, --types <exts>` | Asset extensions to scan, comma-separated |
-| `-c, --code <exts>` | Code extensions to search for references |
-| `-m, --mode <mode>` | `review` (ask), `scan` (dry run), `delete` |
-| `-d, --delete` | Shorthand for `--mode delete` |
-| `--hard-delete` | Permanently delete instead of trashing |
-| `-e, --export <format>` | Write `assetdrain-report.csv` / `.json` |
-| `-y, --yes` | Skip confirmation prompts (CI) |
-| `--json` | Machine-readable JSON summary on stdout (all logs go to stderr) |
-| `--fail-on-unused` | Exit code 1 when unused assets are found (CI gate) |
-| `-v, --version` / `-h, --help` | Version / help |
+### Scan only
 
-When run without a TTY (CI), assetdrain refuses to guess: provide `--types`, `--code` and `--mode` explicitly. `review` mode requires an interactive terminal.
+```bash
+npx assetdrain public \
+  --types png,jpg,svg,webp \
+  --code js,ts,jsx,tsx,css,scss \
+  --mode scan
+```
+
+No files are modified.
+
+### Machine-readable output
+
+```bash
+npx assetdrain public \
+  --types png,svg,webp \
+  --code js,ts,jsx,tsx,css \
+  --mode scan \
+  --json
+```
+
+### Automatically clean unused assets
+
+```bash
+npx assetdrain public \
+  --types png,jpg,svg,webp \
+  --code js,ts,jsx,tsx,css,scss \
+  --mode delete \
+  --yes
+```
+
+Files are moved to `.assetdrain-trash/` by default and can be recovered.
 
 ---
 
-## 🛡 Safety model
+## ⚙️ CLI Options
 
-- **Trash by default.** `--mode delete` moves files to `.assetdrain-trash/<timestamp>/` (directory structure preserved) and writes a `manifest.json` mapping every file to its original location. Restore by moving files back. Add `.assetdrain-trash/` to your `.gitignore`.
-- **`--hard-delete` is permanent.** When combined with an interactive terminal and no `--yes`, assetdrain asks once before deleting.
-- **Refuses to act blindly.** If no code files match your `--code` extensions, assetdrain aborts instead of reporting every asset as unused.
-- **No comment-stripping.** References inside comments count as *used* — for a deletion tool, a false "used" is a cosmetic issue, but a false "unused" is a deleted production asset.
+| Flag | Description |
+|---|---|
+| `[folder]` | Asset folder to scan. Defaults to `.` |
+| `-t, --types <exts>` | Asset extensions to scan, comma-separated |
+| `-c, --code <exts>` | Code extensions to search for references |
+| `-m, --mode <mode>` | `review`, `scan`, or `delete` |
+| `-d, --delete` | Shorthand for `--mode delete` |
+| `--hard-delete` | Permanently delete instead of moving files to trash |
+| `-e, --export <format>` | Export `csv` or `json` report |
+| `-y, --yes` | Skip confirmation prompts |
+| `--json` | Print machine-readable JSON summary to stdout |
+| `--fail-on-unused` | Exit with code `1` when unused assets are found |
+| `-v, --version` | Print installed version |
+| `-h, --help` | Show CLI help |
 
-### ⚠️ Limitations (please read)
+When running without a TTY — for example in CI — assetdrain refuses to guess potentially destructive settings.
 
-- **Dynamic references** like `` `/img/${name}.png` `` cannot be resolved by static analysis — make sure such assets are referenced somewhere statically, or exclude them from the scan.
-- An asset whose filename appears *anywhere* in scanned code (even in prose, a lockfile, or an unrelated path) counts as used. assetdrain prefers false "used" over false "unused".
-- Convention files are protected only inside `app/` directories of detected Next.js projects.
+Provide `--types`, `--code`, and `--mode` explicitly.
+
+`review` mode requires an interactive terminal.
 
 ---
 
 ## ⚙️ Modes
 
-```
-? What would you like to do?
-✔ Scan and Review (Default)
-  Scan Only
-  Scan and Delete Automatically (moved to .assetdrain-trash/)
+### Review
+
+```text
+Scan and Review
 ```
 
-- **Scan and Review** – Shows unused files and _asks if you want to delete_
-- **Scan Only** – Just shows unused files, safe mode
-- **Scan and Delete Automatically** – 🚨 Deletes immediately (trash-recoverable unless `--hard-delete`)
+Shows detected unused files and asks what you want to remove.
+
+This is the default interactive experience.
+
+### Scan
+
+```text
+Scan Only
+```
+
+Detects unused assets without modifying your project.
+
+Ideal for audits and CI.
+
+### Delete
+
+```text
+Scan and Delete Automatically
+```
+
+Removes detected unused assets automatically.
+
+By default, files are moved into:
+
+```text
+.assetdrain-trash/<timestamp>/
+```
+
+They are **not permanently deleted** unless you explicitly use `--hard-delete`.
 
 ---
 
-## 📦 Export
+## 🛡 Safety Model
 
-After the scan (or via `--export csv|json`):
+Deleting project assets is risky, so assetdrain intentionally prefers false positives for **used** assets over false positives for **unused** assets.
 
-- `assetdrain-report.json` — full summary including reclaimable bytes and deletion details
-- `assetdrain-report.csv` — one row per asset: `Filename, Used, Deleted, Kept (convention)`
+### Trash by default
+
+`--mode delete` moves files into:
+
+```text
+.assetdrain-trash/<timestamp>/
+```
+
+The original directory structure is preserved.
+
+A `manifest.json` is created containing the original locations of moved files so they can be restored.
+
+You should add:
+
+```gitignore
+.assetdrain-trash/
+```
+
+to your project's `.gitignore`.
+
+### Permanent deletion requires explicit opt-in
+
+```bash
+--hard-delete
+```
+
+permanently removes files.
+
+When running interactively without `--yes`, assetdrain asks for confirmation first.
+
+### Refuses blind scans
+
+If no source files match the extensions supplied through `--code`, assetdrain aborts instead of incorrectly reporting every asset as unused.
+
+### Conservative reference detection
+
+References inside comments still count as references.
+
+For a deletion utility, incorrectly keeping an asset is much safer than incorrectly deleting a production asset.
 
 ---
 
-## 🤖 CI example
+## ⚠️ Limitations
+
+Static analysis cannot perfectly understand every possible runtime asset reference.
+
+### Dynamic references
+
+Patterns such as:
+
+```js
+`/img/${name}.png`
+```
+
+cannot always be resolved statically.
+
+If your project generates asset paths dynamically, ensure those assets are referenced statically somewhere or exclude them from automated deletion.
+
+### Filename matches are intentionally conservative
+
+If an asset filename appears anywhere in scanned source code — even in prose, comments, lockfiles, or unrelated paths — it may count as used.
+
+Again, assetdrain prefers:
+
+```text
+false "used"
+```
+
+over:
+
+```text
+false "unused"
+```
+
+because the latter could cause data loss.
+
+### Framework conventions
+
+Convention-file protection currently applies to supported Next.js `app/` directory conventions.
+
+---
+
+## 📦 Export Reports
+
+Export scan results as JSON:
+
+```bash
+npx assetdrain public \
+  --types png,jpg,svg \
+  --code js,ts,jsx,tsx \
+  --mode scan \
+  --export json
+```
+
+Or CSV:
+
+```bash
+npx assetdrain public \
+  --types png,jpg,svg \
+  --code js,ts,jsx,tsx \
+  --mode scan \
+  --export csv
+```
+
+Generated files:
+
+```text
+assetdrain-report.json
+assetdrain-report.csv
+```
+
+Reports can include:
+
+- asset filename
+- whether the asset is used
+- whether it was deleted
+- whether it was protected by a framework convention
+- reclaimable disk space
+- deletion information
+
+---
+
+## 🤖 CI/CD
+
+assetdrain can act as a CI gate and fail the build whenever unused assets are detected.
+
+### GitHub Actions
 
 ```yaml
 - name: Check for unused assets
   run: |
-    npx assetdrain public \
+    npx assetdrain@latest public \
       --types png,jpg,svg,webp \
       --code js,ts,jsx,tsx,css,scss \
-      --mode scan --json --fail-on-unused
+      --mode scan \
+      --json \
+      --fail-on-unused
 ```
+
+With `--fail-on-unused`, assetdrain exits with code `1` when unused assets exist.
+
+This makes it possible to prevent new dead assets from accumulating in a repository.
 
 ---
 
 ## 🧑‍💻 Development
 
+Clone the repository:
+
 ```bash
-npm install
-npm run dev        # run the CLI locally
-npm test           # vitest suite (fixture-based)
-npm run build      # tsc → dist/
+git clone https://github.com/vedantsonkar/assetdrain.git
+cd assetdrain
 ```
 
-Test fixtures live in `tests/fixtures/sample-project` — a miniature project with known used/unused assets and every reference form that has historically broken asset detection.
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run locally:
+
+```bash
+npm run dev
+```
+
+Run tests:
+
+```bash
+npm test
+```
+
+Build:
+
+```bash
+npm run build
+```
+
+Test fixtures live in:
+
+```text
+tests/fixtures/sample-project
+```
+
+The fixture project contains known used and unused assets along with reference patterns that have historically caused problems for asset detection.
+
+---
+
+## 🤝 Contributing
+
+Contributions, bug reports, ideas, and improvements are welcome.
+
+If you find an edge case assetdrain doesn't handle correctly, please open an issue with a minimal reproduction where possible.
+
+[Open an issue](https://github.com/vedantsonkar/assetdrain/issues)
 
 ---
 
@@ -139,26 +405,24 @@ Test fixtures live in `tests/fixtures/sample-project` — a miniature project wi
 
 Built with ❤️ by [Vedant Sonkar](https://github.com/vedantsonkar)
 
-Open to contributions, ideas, and collabs. Feel free to reach out!
-
----
-
-## 🐞 Issues / Bugs / Feature Requests
-
-If assetdrain misbehaves or you're dreaming up a feature: 👉 [Open an issue](https://github.com/vedantsonkar/assetdrain/issues)
-
 ---
 
 ## 🧾 License
 
-MIT. You can clone it, fork it, break it, and improve it 😄
+MIT.
+
+See [LICENSE](./LICENSE) for details.
 
 ---
 
 ## ⚠️ Disclaimer
 
-assetdrain is provided "as-is" without any warranties. Use it at your own risk.
+assetdrain is provided **"as-is"**, without warranties of any kind.
 
-By using this tool, you agree that the author (Vedant Sonkar) is **not responsible** for any accidental deletions, data loss, or damage caused by the use (or misuse) of this software.
+The author is not responsible for accidental deletions, data loss, or damage caused by use or misuse of the software.
 
-Always double-check the unused asset list before confirming deletions — especially when using `--hard-delete`.
+Always inspect the detected unused assets before deleting them, especially when using:
+
+```bash
+--hard-delete
+```
