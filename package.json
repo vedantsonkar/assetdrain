@@ -10,7 +10,9 @@
     "dev": "tsx src/cli/index.ts",
     "build": "tsc",
     "start": "node dist/cli/index.js",
-    "test": "tsx src/cli/index.ts"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "cli",
@@ -40,6 +42,9 @@
   ],
   "author": "Vedant Sonkar <vedantsonkar0810@gmail.com>",
   "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/vedantsonkar/assetdrain.git"
@@ -60,7 +65,8 @@
     "@types/node": "^24.0.3",
     "@types/prompts": "^2.4.9",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^5.0.0"
   },
   "files": [
     "dist",
