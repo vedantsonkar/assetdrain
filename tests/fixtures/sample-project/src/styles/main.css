@@ -1,0 +1,4 @@
+.hero {
+  /* public/deep/used-bg.png is applied as the hero background */
+  background: url("/public/deep/used-bg.png") no-repeat center;
+}
