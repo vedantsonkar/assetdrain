@@ -26,14 +26,30 @@ describe("buildReport", () => {
     await fs.writeFile(used, "x");
     await fs.writeFile(unused, "yyyy");
 
-    const report = await buildReport([used, unused, kept], new Set([used]), [
-      kept,
-    ]);
-
+    // Candidates and kept conventions arrive disjoint from the CLI's
+    // framework split; used conventions count as simply "used".
+    const report = await buildReport([used, unused], new Set([used]), [kept]);
+    expect(report.totalAssets).toBe(3);
     expect(report.unusedAssets).toEqual([unused]);
     expect(report.usedCount).toBe(1);
     expect(report.keptConventions).toEqual([kept]);
     expect(report.reclaimableBytes).toBe(4);
+  });
+
+  it("counts a convention file referenced in code as used, not kept", async () => {
+    const used = path.join(root, "used.png");
+    const convention = path.join(root, "app-icon.png");
+
+    const report = await buildReport(
+      [used],
+      new Set([used, convention]),
+      [convention]
+    );
+
+    expect(report.totalAssets).toBe(2);
+    expect(report.unusedAssets).toHaveLength(0);
+    expect(report.keptConventions).toHaveLength(0);
+    expect(report.usedCount).toBe(2);
   });
 });
 
